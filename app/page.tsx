@@ -26,9 +26,10 @@ export default function Home() {
   const [currentProgram, setCurrentProgram] = useState<CycleProgram | null>(null);
   const [debugMode, setDebugMode] = useState(false);
 
-  // Check debug mode on mount
+  // Check debug mode and initialize state on mount
   useEffect(() => {
-    const checkDebugMode = async () => {
+    const initialize = async () => {
+      // Check debug mode
       try {
         const response = await fetch('/api/debug');
         if (response.ok) {
@@ -38,8 +39,21 @@ export default function Home() {
       } catch (error) {
         console.error('Failed to check debug mode:', error);
       }
+
+      // Initialize relay state (polls actual device if not in debug mode)
+      try {
+        const initResponse = await fetch('/api/init', {
+          method: 'POST',
+        });
+        if (initResponse.ok) {
+          console.log('Relay state initialized');
+        }
+      } catch (error) {
+        console.error('Failed to initialize relay state:', error);
+      }
     };
-    checkDebugMode();
+    
+    initialize();
   }, []);
 
   // Fetch status periodically

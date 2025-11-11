@@ -112,3 +112,95 @@ export function isDebugMode(): boolean {
   return DEBUG_MODE;
 }
 
+// Poll the actual relay state from the device
+export async function pollRelayState(channel: number = 1): Promise<{ success: boolean; state?: CupState; error?: string }> {
+  // In debug mode, return current state without polling
+  if (DEBUG_MODE) {
+    console.log('[DEBUG MODE] Skipping relay state poll (using simulated state)');
+    return { success: true, state: getState().currentState };
+  }
+
+  const url = `${DEVICE_URL}/state/${channel}`;
+  
+  try {
+    const response = await axios.get(url, { timeout: REQUEST_TIMEOUT });
+    
+    if (response.status === 200) {
+      // The relay returns a bitmask where each bit represents a channel
+      // For channel 1: 0 = off/closed, 1 = on/open
+      const stateBitmask = response.data.return_value || response.data;
+      const channelMask = 1 << (channel - 1); // Bit position for this channel
+      const isOn = (stateBitmask & channelMask) !== 0;
+      
+      const state: CupState = isOn ? 'open' : 'closed';
+      
+      // Update the state if it changed
+      const currentState = getState().currentState;
+      if (currentState !== state) {
+        console.log(`[POLL] Relay state changed: ${currentState} → ${state}`);
+        updateState({
+          currentState: state,
+          lastCommand: state,
+          lastCommandTime: Date.now(),
+        });
+      }
+      
+      return { success: true, state };
+    } else {
+      const error = `Failed to poll state: ${response.status}`;
+      console.error(error);
+      return { success: false, error };
+    }
+  } catch (error: any) {
+    const errorMessage = error.message || 'Unknown error polling relay';
+    console.error(`[POLL ERROR] ${errorMessage}`);
+    return { success: false, error: errorMessage };
+  }
+}
+
+// Initialize the state by polling the relay
+export async function initializeState(channel: number = 1): Promise<void> {
+  console.log('[INIT] Initializing relay state...');
+  const result = await pollRelayState(channel);
+  
+  if (result.success && result.state) {
+    console.log(`[INIT] Initial relay state: ${result.state}`);
+  } else {
+    console.log('[INIT] Could not determine initial state, defaulting to unknown');
+    updateState({ currentState: 'unknown' });
+  }
+}
+
+// Start periodic polling (call this once on server startup)
+let pollingInterval: NodeJS.Timeout | null = null;
+
+export function startStatePolling(intervalMs: number = 10000, channel: number = 1): void {
+  if (pollingInterval) {
+    console.log('[POLL] Stopping existing polling interval');
+    stopStatePolling();
+  }
+  
+  if (DEBUG_MODE) {
+    console.log('[DEBUG MODE] State polling disabled (using simulated state)');
+    return;
+  }
+  
+  console.log(`[POLL] Starting state polling every ${intervalMs}ms`);
+  
+  // Poll immediately
+  pollRelayState(channel);
+  
+  // Then poll periodically
+  pollingInterval = setInterval(() => {
+    pollRelayState(channel);
+  }, intervalMs);
+}
+
+export function stopStatePolling(): void {
+  if (pollingInterval) {
+    clearInterval(pollingInterval);
+    pollingInterval = null;
+    console.log('[POLL] State polling stopped');
+  }
+}
+
