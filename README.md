@@ -12,6 +12,17 @@ A modern, web-based interface for controlling Faraday Cup experiments. Built wit
 - 🌓 **Dark Mode**: Automatic dark mode support based on system preferences
 - 💻 **Responsive Design**: Beautiful UI that works on desktop and mobile devices
 
+## 📚 Documentation
+
+Comprehensive documentation is available in the [`docs/`](docs/) folder:
+
+- **[START_HERE.md](docs/START_HERE.md)** ⭐ - Quick start guide (start here!)
+- **[QUICKSTART.md](docs/QUICKSTART.md)** - 3-step installation guide
+- **[FEATURES.md](docs/FEATURES.md)** - Complete feature overview
+- **[DEBUG_MODE.md](docs/DEBUG_MODE.md)** - Testing without hardware
+- **[ARDUINO_INTEGRATION.md](docs/ARDUINO_INTEGRATION.md)** - Hardware setup guide
+- **[PROJECT_SUMMARY.md](docs/PROJECT_SUMMARY.md)** - Architecture overview
+
 ## Prerequisites
 
 - Node.js 18.x or later
